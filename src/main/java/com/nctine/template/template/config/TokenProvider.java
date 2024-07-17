@@ -37,8 +37,6 @@ public class TokenProvider {
         return this.generateToken(authentication, REFRESH_EXPIRATION_TIME, REFRESH_SECRET);
     }
 
-
-
     private String generateToken(Authentication authentication, long expire, String secret) {
         String authorities = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
