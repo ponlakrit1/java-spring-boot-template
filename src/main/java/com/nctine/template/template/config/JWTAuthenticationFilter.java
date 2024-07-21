@@ -1,6 +1,7 @@
 package com.nctine.template.template.config;
 
 
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.annotation.Resource;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -34,17 +35,33 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String header = request.getHeader(AUTH_HEADER);
-        String authToken = header.replace(TOKEN_PREFIX, "");
 
-        String username = tokenService.getUsernameFromToken(authToken);
+        String authToken = null;
+        String username = null;
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+        if (header != null && header.startsWith(TOKEN_PREFIX)) {
+            authToken = header.replace(TOKEN_PREFIX, "");
+            try {
+                username = tokenService.getUsernameFromToken(authToken);
+            } catch (IllegalArgumentException e) {
+                logger.error("An error occurred while fetching Username from Token", e);
+            } catch (ExpiredJwtException e) {
+                logger.warn("The token has expired", e);
+            }
+        } else {
+            logger.warn("Couldn't find bearer string, header will be ignored");
+        }
 
-        if (tokenService.validateToken(authToken, userDetails)) {
-            UsernamePasswordAuthenticationToken authentication = tokenService.getAuthenticationToken(authToken, userDetails);
-            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+
+            if (tokenService.validateToken(authToken, userDetails)) {
+                UsernamePasswordAuthenticationToken authentication = tokenService.getAuthenticationToken(authToken, userDetails);
+                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            }
         }
 
         filterChain.doFilter(request, response);

@@ -22,29 +22,12 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 @EnableWebSecurity
 public class WebSecurityConfig {
-
-    @Bean
-    public UserDetailsService userDetailsService(PasswordEncoder encoder) {
-
-        UserDetails admin = User.withUsername("nctine")
-                .password(encoder.encode("123456"))
-                .roles("ADMIN", "USER")
-                .build();
-
-        UserDetails user = User.withUsername("tech")
-                .password(encoder.encode("123456"))
-                .roles("USER")
-                .build();
-
-        return new InMemoryUserDetailsManager(admin, user);
-    }
-
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http.csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/").permitAll()
-                .requestMatchers(HttpMethod.POST,"/cred/login").permitAll()
+                .requestMatchers(HttpMethod.POST,"/cred/login", "/cred/refresh-token", "/cred/register").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(authenticationTokenFilterBean(), UsernamePasswordAuthenticationFilter.class)

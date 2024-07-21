@@ -1,6 +1,9 @@
 package com.nctine.template.template.config;
 
+import com.nctine.template.template.component.UserComponent;
+import com.nctine.template.template.repository.UsersRepository;
 import io.jsonwebtoken.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -28,6 +31,12 @@ public class TokenProvider {
     private static final long REFRESH_EXPIRATION_TIME = 1000 * 60 * 60 * 24; // 1 day
 
     private static final String AUTH_HEADER = "Authorization";
+
+    @Autowired
+    private UsersRepository usersRepository;
+
+    @Autowired
+    private UserComponent userComponent;
 
     public String generateAccessToken(Authentication authentication) {
         return this.generateToken(authentication, EXPIRATION_TIME, SECRET);
@@ -73,7 +82,9 @@ public class TokenProvider {
                 Arrays.stream(claims.get(AUTH_HEADER).toString().split(","))
                         .map(SimpleGrantedAuthority::new)
                         .collect(Collectors.toList());
-
+        userComponent.setUserId((Integer) claims.get("userId"));
+        userComponent.setUsername(userDetails.getUsername());
+        userComponent.setEmail((String) claims.get("email"));
         return new UsernamePasswordAuthenticationToken(userDetails, "", authorities);
     }
 

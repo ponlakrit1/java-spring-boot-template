@@ -2,6 +2,7 @@ package com.nctine.template.template.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -26,9 +27,11 @@ public class UsersEntity {
     @Column(name = "user_id")
     private Integer userId;
 
+    @NotNull
     @Column(name = "username")
     private String username;
 
+    @NotNull
     @Column(name = "password")
     @JsonIgnore
     private String password;
@@ -42,6 +45,7 @@ public class UsersEntity {
     @Column(name = "email")
     private String email;
 
+    @NotNull
     @Column(name = "role")
     private String role;
 

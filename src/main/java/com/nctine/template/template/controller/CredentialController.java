@@ -1,8 +1,10 @@
 package com.nctine.template.template.controller;
 
 import com.nctine.template.template.config.TokenProvider;
+import com.nctine.template.template.entity.UsersEntity;
 import com.nctine.template.template.model.request.LoginUser;
 import com.nctine.template.template.model.response.AuthToken;
+import com.nctine.template.template.service.UsersService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -24,6 +26,9 @@ public class CredentialController {
     @Autowired
     private TokenProvider jwtTokenUtil;
 
+    @Autowired
+    private UsersService usersService;
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody @Validated LoginUser request) {
         final Authentication authentication = authenticationManager.authenticate(
@@ -41,5 +46,10 @@ public class CredentialController {
         final String refreshToken = jwtTokenUtil.generateRefreshToken(authentication);
 
         return ResponseEntity.status(HttpStatus.OK).body(new AuthToken(token, refreshToken));
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<?> saveUser(@RequestBody @Validated UsersEntity user) throws Exception {
+        return ResponseEntity.ok(usersService.create(user));
     }
 }
