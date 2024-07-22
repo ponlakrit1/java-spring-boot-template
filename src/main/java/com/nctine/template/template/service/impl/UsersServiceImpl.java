@@ -1,6 +1,7 @@
 package com.nctine.template.template.service.impl;
 
 import com.nctine.template.template.entity.UsersEntity;
+import com.nctine.template.template.model.request.RegisterUserRequest;
 import com.nctine.template.template.repository.UsersRepository;
 import com.nctine.template.template.service.UsersService;
 import com.nctine.template.template.type.ErrorType;
@@ -48,7 +49,7 @@ public class UsersServiceImpl implements UserDetailsService, UsersService {
     }
 
     @Override
-    public UsersEntity create(UsersEntity request) throws Exception {
+    public UsersEntity create(RegisterUserRequest request) throws Exception {
         UsersEntity user = usersRepository.findByUsernameAndActiveIsTrue(request.getUsername());
         if (user != null) {
             throw new ErrorException(ErrorType.USER_ALREADY_EXISTS, HttpStatus.CONFLICT);

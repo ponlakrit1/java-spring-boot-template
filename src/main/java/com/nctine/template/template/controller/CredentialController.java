@@ -3,6 +3,7 @@ package com.nctine.template.template.controller;
 import com.nctine.template.template.config.TokenProvider;
 import com.nctine.template.template.entity.UsersEntity;
 import com.nctine.template.template.model.request.LoginUser;
+import com.nctine.template.template.model.request.RegisterUserRequest;
 import com.nctine.template.template.model.response.AuthToken;
 import com.nctine.template.template.service.UsersService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,7 +50,7 @@ public class CredentialController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> saveUser(@RequestBody @Validated UsersEntity user) throws Exception {
+    public ResponseEntity<?> saveUser(@RequestBody @Validated RegisterUserRequest user) throws Exception {
         return ResponseEntity.ok(usersService.create(user));
     }
 }

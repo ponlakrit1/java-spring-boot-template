@@ -1,6 +1,7 @@
 package com.nctine.template.template.config;
 
 import com.nctine.template.template.component.UserComponent;
+import com.nctine.template.template.entity.UsersEntity;
 import com.nctine.template.template.repository.UsersRepository;
 import io.jsonwebtoken.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +23,7 @@ import java.util.stream.Collectors;
 @Component
 public class TokenProvider {
 
-    private static final String SECRET = "secret-key";
+    private static final String SECRET = "MQq43F8ynV2Gyr7uS4ED3hs5Yjvi8ZDs";
 
     private static final String REFRESH_SECRET = "refresh-secret-key";
 
@@ -30,7 +31,7 @@ public class TokenProvider {
 
     private static final long REFRESH_EXPIRATION_TIME = 1000 * 60 * 60 * 24; // 1 day
 
-    private static final String AUTH_HEADER = "Authorization";
+    private static final String AUTHORITIES_KEY = "roles";
 
     @Autowired
     private UsersRepository usersRepository;
@@ -51,14 +52,18 @@ public class TokenProvider {
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.joining(","));
 
+        UsersEntity users = usersRepository.findByUsernameAndActiveIsTrue(authentication.getName());
+
         return Jwts.builder()
                 .setSubject(authentication.getName())
-                .claim("userid", 1)
-                .claim("firstname", "nctine")
-                .claim("lastname", "nctine")
-                .claim("email", "nctine.tech@gmail.com")
+                .claim(AUTHORITIES_KEY, authorities)
+                .claim("userid", users.getUserId())
+                .claim("firstname", users.getFirstname())
+                .claim("lastname", users.getLastname())
+                .claim("email", users.getEmail())
+                .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(this.getExpireDate(expire))
-                .signWith(SignatureAlgorithm.HS512, secret)
+                .signWith(this.getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
@@ -79,7 +84,7 @@ public class TokenProvider {
         final Claims claims = claimsJws.getBody();
 
         final Collection<? extends GrantedAuthority> authorities =
-                Arrays.stream(claims.get(AUTH_HEADER).toString().split(","))
+                Arrays.stream(claims.get(AUTHORITIES_KEY).toString().split(","))
                         .map(SimpleGrantedAuthority::new)
                         .collect(Collectors.toList());
         userComponent.setUserId((Integer) claims.get("userId"));
@@ -89,7 +94,7 @@ public class TokenProvider {
     }
 
     private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(TokenProvider.SECRET.getBytes());
+        return Keys.hmacShaKeyFor(SECRET.getBytes());
     }
 
     public String getUsernameFromToken(String token) {
