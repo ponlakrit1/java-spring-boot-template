@@ -5,6 +5,7 @@ import com.nctine.template.template.entity.UsersEntity;
 import com.nctine.template.template.repository.UsersRepository;
 import io.jsonwebtoken.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -23,15 +24,20 @@ import java.util.stream.Collectors;
 @Component
 public class TokenProvider {
 
-    private static final String SECRET = "MQq43F8ynV2Gyr7uS4ED3hs5Yjvi8ZDs";
+    @Value("${jwt.signing.key}")
+    public String SIGNING_KEY;
 
-    private static final String REFRESH_SECRET = "refresh-secret-key";
+    @Value("${jwt.refresh.signing.key}")
+    public String REFRESH_SIGNING_KEY;
 
-    private static final long EXPIRATION_TIME = 1000 * 60 * 30; // 30 minute
+    @Value("${jwt.token.validity}")
+    public long TOKEN_VALIDITY;
 
-    private static final long REFRESH_EXPIRATION_TIME = 1000 * 60 * 60 * 24; // 1 day
+    @Value("${jwt.refresh.token.validity}")
+    public long REFRESH_TOKEN_VALIDITY;
 
-    private static final String AUTHORITIES_KEY = "roles";
+    @Value("${jwt.authorities.key}")
+    public String AUTHORITIES_KEY;
 
     @Autowired
     private UsersRepository usersRepository;
@@ -40,11 +46,11 @@ public class TokenProvider {
     private UserComponent userComponent;
 
     public String generateAccessToken(Authentication authentication) {
-        return this.generateToken(authentication, EXPIRATION_TIME, SECRET);
+        return this.generateToken(authentication, TOKEN_VALIDITY, SIGNING_KEY);
     }
 
     public String generateRefreshToken(Authentication authentication) {
-        return this.generateToken(authentication, REFRESH_EXPIRATION_TIME, REFRESH_SECRET);
+        return this.generateToken(authentication, REFRESH_TOKEN_VALIDITY, REFRESH_SIGNING_KEY);
     }
 
     private String generateToken(Authentication authentication, long expire, String secret) {
@@ -94,7 +100,7 @@ public class TokenProvider {
     }
 
     private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(SECRET.getBytes());
+        return Keys.hmacShaKeyFor(SIGNING_KEY.getBytes());
     }
 
     public String getUsernameFromToken(String token) {
