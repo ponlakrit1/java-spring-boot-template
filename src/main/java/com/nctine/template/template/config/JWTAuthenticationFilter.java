@@ -2,6 +2,7 @@ package com.nctine.template.template.config;
 
 
 import io.jsonwebtoken.ExpiredJwtException;
+import io.micrometer.common.util.StringUtils;
 import jakarta.annotation.Resource;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -38,13 +39,19 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String header = request.getHeader(HEADER_STRING);
 
+        boolean isRenew = false;
+        if (header == null) {
+            header = request.getHeader(HEADER_STRING + "Refresh");
+            isRenew = StringUtils.isNotBlank(header);
+        }
+
         String authToken = null;
         String username = null;
 
         if (header != null && header.startsWith(TOKEN_PREFIX)) {
             authToken = header.replace(TOKEN_PREFIX, "");
             try {
-                username = tokenService.getUsernameFromToken(authToken);
+                username = tokenService.getUsernameFromToken(authToken, isRenew);
             } catch (IllegalArgumentException e) {
                 logger.error("An error occurred while fetching Username from Token", e);
             } catch (ExpiredJwtException e) {
@@ -58,8 +65,8 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-            if (tokenService.validateToken(authToken, userDetails)) {
-                UsernamePasswordAuthenticationToken authentication = tokenService.getAuthenticationToken(authToken, userDetails);
+            if (tokenService.validateToken(authToken, userDetails, isRenew)) {
+                UsernamePasswordAuthenticationToken authentication = tokenService.getAuthenticationToken(authToken, userDetails, isRenew);
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);

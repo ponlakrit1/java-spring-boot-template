@@ -1,7 +1,6 @@
 package com.nctine.template.template.controller;
 
 import com.nctine.template.template.config.TokenProvider;
-import com.nctine.template.template.entity.UsersEntity;
 import com.nctine.template.template.model.request.LoginUser;
 import com.nctine.template.template.model.request.RegisterUserRequest;
 import com.nctine.template.template.model.response.AuthToken;
@@ -11,6 +10,7 @@ import org.springframework.http.*;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -39,6 +39,12 @@ public class CredentialController {
                 )
         );
 
+        return this.genAuthResponse(authentication);
+    }
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<?> refreshToken() {
+        final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return this.genAuthResponse(authentication);
     }
 

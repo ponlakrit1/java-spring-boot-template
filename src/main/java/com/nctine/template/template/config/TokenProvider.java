@@ -46,14 +46,14 @@ public class TokenProvider {
     private UserComponent userComponent;
 
     public String generateAccessToken(Authentication authentication) {
-        return this.generateToken(authentication, TOKEN_VALIDITY, SIGNING_KEY);
+        return this.generateToken(authentication, SIGNING_KEY, new Date(System.currentTimeMillis() + TOKEN_VALIDITY * 1000));
     }
 
     public String generateRefreshToken(Authentication authentication) {
-        return this.generateToken(authentication, REFRESH_TOKEN_VALIDITY, REFRESH_SIGNING_KEY);
+        return this.generateToken(authentication, REFRESH_SIGNING_KEY, new Date(System.currentTimeMillis() + REFRESH_TOKEN_VALIDITY * 1000));
     }
 
-    private String generateToken(Authentication authentication, long expire, String secret) {
+    private String generateToken(Authentication authentication, String signingKey, Date expirationDate) {
         String authorities = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.joining(","));
@@ -68,8 +68,8 @@ public class TokenProvider {
                 .claim("lastname", users.getLastname())
                 .claim("email", users.getEmail())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(this.getExpireDate(expire))
-                .signWith(this.getSigningKey(), SignatureAlgorithm.HS256)
+                .setExpiration(expirationDate)
+                .signWith(this.getSigningKey(signingKey), SignatureAlgorithm.HS256)
                 .compact();
     }
 
@@ -77,13 +77,14 @@ public class TokenProvider {
         return new Date(System.currentTimeMillis() + expire);
     }
 
-    public Boolean validateToken(String token, UserDetails userDetails) {
-        final String username = getUsernameFromToken(token);
-        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+    public Boolean validateToken(String token, UserDetails userDetails, boolean isRenew) {
+        final String username = getUsernameFromToken(token, isRenew);
+        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token, isRenew));
     }
 
-    public UsernamePasswordAuthenticationToken getAuthenticationToken(final String token, final UserDetails userDetails) {
-        final JwtParser jwtParser = Jwts.parserBuilder().setSigningKey(getSigningKey()).build();
+    public UsernamePasswordAuthenticationToken getAuthenticationToken(final String token, final UserDetails userDetails, boolean isRenew) {
+        String signingKey = isRenew ? REFRESH_SIGNING_KEY : SIGNING_KEY;
+        final JwtParser jwtParser = Jwts.parserBuilder().setSigningKey(getSigningKey(signingKey)).build();
 
         final Jws<Claims> claimsJws = jwtParser.parseClaimsJws(token);
 
@@ -99,33 +100,35 @@ public class TokenProvider {
         return new UsernamePasswordAuthenticationToken(userDetails, "", authorities);
     }
 
-    private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(SIGNING_KEY.getBytes());
+    private Key getSigningKey(String signingKey) {
+        return Keys.hmacShaKeyFor(signingKey.getBytes());
     }
 
-    public String getUsernameFromToken(String token) {
-        return getClaimFromToken(token, Claims::getSubject);
+    public String getUsernameFromToken(String token, boolean isRenew) {
+        return getClaimFromToken(token, Claims::getSubject, isRenew);
     }
 
-    public Date getExpirationDateFromToken(String token) {
-        return getClaimFromToken(token, Claims::getExpiration);
+    public Date getExpirationDateFromToken(String token, boolean isRenew) {
+        return getClaimFromToken(token, Claims::getExpiration, isRenew);
     }
 
-    public <T> T getClaimFromToken(String token, Function<Claims, T> claimsResolver) {
-        final Claims claims = getAllClaimsFromToken(token);
+    public <T> T getClaimFromToken(String token, Function<Claims, T> claimsResolver, boolean isRenew) {
+        String signingKey = isRenew ? REFRESH_SIGNING_KEY : SIGNING_KEY;
+
+        final Claims claims = getAllClaimsFromToken(token, signingKey);
         return claimsResolver.apply(claims);
     }
 
-    public Claims getAllClaimsFromToken(String token) {
+    public Claims getAllClaimsFromToken(String token, String signingKey) {
         return Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
+                .setSigningKey(getSigningKey(signingKey))
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
     }
 
-    private Boolean isTokenExpired(String token) {
-        final Date expiration = getExpirationDateFromToken(token);
+    private Boolean isTokenExpired(String token, boolean isRenew) {
+        final Date expiration = getExpirationDateFromToken(token, isRenew);
         return expiration.before(new Date());
     }
 }
